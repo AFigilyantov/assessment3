@@ -42,27 +42,27 @@ func New(dbPath string) (SQLiteStorage, error) {
 	return SQLiteStorage{db: db}, nil
 }
 
-func (s *SQLiteStorage) RegisterUser(ctx context.Context, u models.UserAccount) (models.UserAccount, error) {
+func (s *SQLiteStorage) RegisterUser(ctx context.Context, u models.UserAccount) error {
 
 	hashedPasssword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 
 	if err != nil {
 
-		return models.UserAccount{}, err
+		return err
 
 	}
 
 	st, err := s.db.PrepareContext(ctx, "INSERT INTO users (username, password, email) VALUES (?,?,?);")
 
 	if err != nil {
-		return models.UserAccount{}, err
+		return err
 	}
 
 	if _, err := st.Exec(u.UserName, string(hashedPasssword[:]), u.Email); err != nil {
-		return models.UserAccount{}, err
+		return err
 	}
 
-	return models.UserAccount{}, nil
+	return nil
 }
 
 func (s *SQLiteStorage) LoginUser(ctx context.Context, username, password string) (models.UserAccount, error) {
@@ -86,4 +86,22 @@ func (s *SQLiteStorage) LoginUser(ctx context.Context, username, password string
 
 func (s *SQLiteStorage) CloseDb() {
 	s.db.Close()
+}
+
+func (s *SQLiteStorage) FindUserByEmail(ctx context.Context, username string) (models.UserAccount, error) {
+	stmt, err := s.db.PrepareContext(ctx, `SELECT password FROM users WHERE username = ?`)
+	if err != nil {
+		return models.UserAccount{}, err
+	}
+
+	var pswdFromDB string
+
+	if err := stmt.QueryRow(username).Scan(&pswdFromDB); err != nil {
+		return models.UserAccount{}, err
+	}
+
+	return models.UserAccount{
+		UserName: username,
+		Password: pswdFromDB,
+	}, nil
 }

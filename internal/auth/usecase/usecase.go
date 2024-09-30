@@ -1,17 +1,17 @@
 package usecase
 
 import (
-	"chitests/internal/auth/entity"
 	"chitests/internal/buildinfo"
 	"chitests/internal/http/gen"
+	"chitests/internal/models"
 	"context"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type UserRepository interface {
-	RegisterUser(ctx context.Context, u entity.UserAccount) error
-	FindUserByEmail(ctx context.Context, username string) (entity.UserAccount, error)
+	RegisterUser(ctx context.Context, u models.UserAccount) error
+	FindUserByEmail(ctx context.Context, username string) (models.UserAccount, error)
 }
 
 type CryptoPassword interface {
@@ -57,7 +57,7 @@ func (u AuthUseCase) PostLogin(ctx context.Context, request gen.PostLoginRequest
 		return gen.PostLogin401JSONResponse{Error: "unauth"}, nil
 	}
 
-	token, err := u.jwtmanager.IssueToken(user.Username)
+	token, err := u.jwtmanager.IssueToken(user.UserName)
 	if err != nil {
 		return gen.PostLogin500JSONResponse{}, err
 	}
@@ -74,8 +74,8 @@ func (u AuthUseCase) PostRegister(ctx context.Context, request gen.PostRegisterR
 	}
 
 	// TODO with New method
-	user := entity.UserAccount{
-		Username: request.Body.Username,
+	user := models.UserAccount{
+		UserName: request.Body.Username,
 		Password: string(hashedPassword),
 	}
 

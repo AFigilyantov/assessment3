@@ -7,5 +7,5 @@ storage:
 jwt:
   issuer: auth-service
   expires_in: 12h
-  public_key: /Users/bogatyr/work/go/src/github.com/bogatyr285/auth-go/jwtRS256.key.pub   
-  private_key: /Users/bogatyr/work/go/src/github.com/bogatyr285/auth-go/jwtRS256.key
+  public_key: "C:/Users/afigi/Desktop/Education/for_Chi/jwtRS256.key.pub"
+  private_key: "C:/Users/afigi/Desktop/Education/for_Chi/jwtRS256.key"
