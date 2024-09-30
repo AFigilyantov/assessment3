@@ -9,6 +9,6 @@ storage:
 jwt:
   issuer: auth-service
   expires_in: 12h
-  public_key_path: "C:/Users/afigi/Desktop/Education/for_Chi/jwtRS256.key.pub"
-  private_key_path: "C:/Users/afigi/Desktop/Education/for_Chi/jwtRS256.key"
+  public_key_path: "C:/Users/afigi/Desktop/Education/for_Chi/id_ed25519.pub"
+  private_key_path: "C:/Users/afigi/Desktop/Education/for_Chi/id_ed25519"
   

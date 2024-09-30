@@ -9,16 +9,19 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+//go:generate mockgen -source=usecase.go -destination=../../../mocks/usecase_mock.go -package mock
 type UserRepository interface {
 	RegisterUser(ctx context.Context, u models.UserAccount) error
 	FindUserByEmail(ctx context.Context, username string) (models.UserAccount, error)
 }
 
+//go:generate mockgen -source=usecase.go -destination=../../../mocks/usecase_mock.go -package mock
 type CryptoPassword interface {
 	HashPassword(password string) ([]byte, error)
 	ComparePasswords(fromUser, fromDB string) bool
 }
 
+//go:generate mockgen -source=usecase.go -destination=../../../mocks/usecase_mock.go -package mock
 type JWTManager interface {
 	IssueToken(userID string) (string, error)
 	VerifyToken(tokenString string) (*jwt.Token, error)

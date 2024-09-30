@@ -26,6 +26,7 @@ type JWTManager struct {
 
 func NewJWTManager(issuer string, expiresIn time.Duration, publicKey, privateKey []byte) (*JWTManager, error) {
 	pubKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKey)
+
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrKeyParsing, err)
 	}
