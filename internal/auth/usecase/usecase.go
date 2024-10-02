@@ -48,24 +48,24 @@ func NewUseCase(
 	}
 }
 
-func (u AuthUseCase) PostLogin(ctx context.Context, request gen.PostLoginRequestObject) (gen.PostLoginResponseObject, error) {
+func (u AuthUseCase) GetLogin(ctx context.Context, request gen.GetLoginRequestObject) (gen.GetLoginResponseObject, error) {
 	user, err := u.userrepository.FindUserByEmail(ctx, request.Body.Username)
 	if err != nil {
-		return gen.PostLogin500JSONResponse{
+		return gen.GetLogin500JSONResponse{
 			Error: err.Error(),
 		}, nil
 	}
 
 	if !u.cryptopass.ComparePasswords(user.Password, request.Body.Password) {
-		return gen.PostLogin401JSONResponse{Error: "unauth"}, nil
+		return gen.GetLogin401JSONResponse{Error: "unauth"}, nil
 	}
 
 	token, err := u.jwtmanager.IssueToken(user.UserName)
 	if err != nil {
-		return gen.PostLogin500JSONResponse{}, err
+		return gen.GetLogin500JSONResponse{}, err
 	}
 
-	return gen.PostLogin200JSONResponse{
+	return gen.GetLogin200JSONResponse{
 		AccessToken: token,
 	}, nil
 }

@@ -26,8 +26,8 @@ type ServerInterface interface {
 	// (GET /buildinfo)
 	GetBuildinfo(w http.ResponseWriter, r *http.Request)
 	// Login a user
-	// (POST /login)
-	PostLogin(w http.ResponseWriter, r *http.Request)
+	// (GET /login)
+	GetLogin(w http.ResponseWriter, r *http.Request)
 	// Register a new user
 	// (POST /register)
 	PostRegister(w http.ResponseWriter, r *http.Request)
@@ -44,8 +44,8 @@ func (_ Unimplemented) GetBuildinfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // Login a user
-// (POST /login)
-func (_ Unimplemented) PostLogin(w http.ResponseWriter, r *http.Request) {
+// (GET /login)
+func (_ Unimplemented) GetLogin(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -79,12 +79,12 @@ func (siw *ServerInterfaceWrapper) GetBuildinfo(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// PostLogin operation middleware
-func (siw *ServerInterfaceWrapper) PostLogin(w http.ResponseWriter, r *http.Request) {
+// GetLogin operation middleware
+func (siw *ServerInterfaceWrapper) GetLogin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostLogin(w, r)
+		siw.Handler.GetLogin(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -226,7 +226,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/buildinfo", wrapper.GetBuildinfo)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/login", wrapper.PostLogin)
+		r.Get(options.BaseURL+"/login", wrapper.GetLogin)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/register", wrapper.PostRegister)
@@ -260,44 +260,44 @@ func (response GetBuildinfo500JSONResponse) VisitGetBuildinfoResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostLoginRequestObject struct {
-	Body *PostLoginJSONRequestBody
+type GetLoginRequestObject struct {
+	Body *GetLoginJSONRequestBody
 }
 
-type PostLoginResponseObject interface {
-	VisitPostLoginResponse(w http.ResponseWriter) error
+type GetLoginResponseObject interface {
+	VisitGetLoginResponse(w http.ResponseWriter) error
 }
 
-type PostLogin200JSONResponse LoginUserResponse
+type GetLogin200JSONResponse LoginUserResponse
 
-func (response PostLogin200JSONResponse) VisitPostLoginResponse(w http.ResponseWriter) error {
+func (response GetLogin200JSONResponse) VisitGetLoginResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostLogin400JSONResponse ErrorResponse
+type GetLogin400JSONResponse ErrorResponse
 
-func (response PostLogin400JSONResponse) VisitPostLoginResponse(w http.ResponseWriter) error {
+func (response GetLogin400JSONResponse) VisitGetLoginResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostLogin401JSONResponse ErrorResponse
+type GetLogin401JSONResponse ErrorResponse
 
-func (response PostLogin401JSONResponse) VisitPostLoginResponse(w http.ResponseWriter) error {
+func (response GetLogin401JSONResponse) VisitGetLoginResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(401)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostLogin500JSONResponse ErrorResponse
+type GetLogin500JSONResponse ErrorResponse
 
-func (response PostLogin500JSONResponse) VisitPostLoginResponse(w http.ResponseWriter) error {
+func (response GetLogin500JSONResponse) VisitGetLoginResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -345,8 +345,8 @@ type StrictServerInterface interface {
 	// (GET /buildinfo)
 	GetBuildinfo(ctx context.Context, request GetBuildinfoRequestObject) (GetBuildinfoResponseObject, error)
 	// Login a user
-	// (POST /login)
-	PostLogin(ctx context.Context, request PostLoginRequestObject) (PostLoginResponseObject, error)
+	// (GET /login)
+	GetLogin(ctx context.Context, request GetLoginRequestObject) (GetLoginResponseObject, error)
 	// Register a new user
 	// (POST /register)
 	PostRegister(ctx context.Context, request PostRegisterRequestObject) (PostRegisterResponseObject, error)
@@ -405,11 +405,11 @@ func (sh *strictHandler) GetBuildinfo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// PostLogin operation middleware
-func (sh *strictHandler) PostLogin(w http.ResponseWriter, r *http.Request) {
-	var request PostLoginRequestObject
+// GetLogin operation middleware
+func (sh *strictHandler) GetLogin(w http.ResponseWriter, r *http.Request) {
+	var request GetLoginRequestObject
 
-	var body PostLoginJSONRequestBody
+	var body GetLoginJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
@@ -417,18 +417,18 @@ func (sh *strictHandler) PostLogin(w http.ResponseWriter, r *http.Request) {
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.PostLogin(ctx, request.(PostLoginRequestObject))
+		return sh.ssi.GetLogin(ctx, request.(GetLoginRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostLogin")
+		handler = middleware(handler, "GetLogin")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(PostLoginResponseObject); ok {
-		if err := validResponse.VisitPostLoginResponse(w); err != nil {
+	} else if validResponse, ok := response.(GetLoginResponseObject); ok {
+		if err := validResponse.VisitGetLoginResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -470,20 +470,20 @@ func (sh *strictHandler) PostRegister(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

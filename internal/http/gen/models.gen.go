@@ -71,8 +71,8 @@ type RegisterUserResponse struct {
 	Username string `json:"username"`
 }
 
-// PostLoginJSONRequestBody defines body for PostLogin for application/json ContentType.
-type PostLoginJSONRequestBody = LoginUserRequest
+// GetLoginJSONRequestBody defines body for GetLogin for application/json ContentType.
+type GetLoginJSONRequestBody = LoginUserRequest
 
 // PostRegisterJSONRequestBody defines body for PostRegister for application/json ContentType.
 type PostRegisterJSONRequestBody = RegisterUserRequest

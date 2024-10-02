@@ -31,6 +31,7 @@ func NewServeCmd() *cobra.Command {
 		Aliases:    []string{"s"},
 		SuggestFor: []string{},
 		Short:      "Start API server",
+		Args:       cobra.NoArgs,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -44,6 +45,7 @@ func NewServeCmd() *cobra.Command {
 			router.Use(middleware.Recoverer)
 			router.Use(middleware.Logger) // switcth off to production transfer to proxy server
 
+			configPath, _ := cmd.Flags().GetString("config")
 			cfg, err := config.Parse(configPath)
 
 			// to flags "C:/Users/afigi/Desktop/Education/for_Chi/config.yaml"

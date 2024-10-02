@@ -35,7 +35,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   
   /login:
-    post:
+    get:
       summary: Login a user
       requestBody:
         required: true
