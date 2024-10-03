@@ -8,7 +8,9 @@ import (
 	"chitests/internal/storage"
 	"chitests/pkg/crypto"
 	"chitests/pkg/jwt"
+	"chitests/pkg/trace"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -19,6 +21,7 @@ import (
 
 	chiprometheus "github.com/766b/chi-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
@@ -42,6 +45,16 @@ func NewServeCmd() *cobra.Command {
 
 			ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()
+
+			// Set up OpenTelemetry.
+			otelShutdown, err := trace.SetupOTelSDK(ctx)
+			if err != nil {
+				return err
+			}
+			// Handle shutdown properly so nothing leaks.
+			defer func() {
+				err = errors.Join(err, otelShutdown(context.Background()))
+			}()
 
 			router := chi.NewRouter()
 
@@ -91,12 +104,16 @@ func NewServeCmd() *cobra.Command {
 
 			router.Handle("/metrics", promhttp.Handler())
 
+			handler := otelhttp.NewHandler(gen.HandlerFromMux(gen.NewStrictHandler(useCase, nil), router), "/")
+
 			httpServer := http.Server{
 				Addr:         cfg.HTTPServer.Address,
 				ReadTimeout:  cfg.HTTPServer.ReadTimeout,
 				WriteTimeout: cfg.HTTPServer.WriteTimeout,
-				Handler:      gen.HandlerFromMux(gen.NewStrictHandler(useCase, nil), router),
+				Handler:      handler,
 			}
+
+			//gen.HandlerFromMux(gen.NewStrictHandler(useCase, nil), router)
 
 			go func() {
 				if err := httpServer.ListenAndServe(); err != nil {
