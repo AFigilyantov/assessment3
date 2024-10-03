@@ -17,6 +17,9 @@ import (
 	"syscall"
 	"time"
 
+	chiprometheus "github.com/766b/chi-prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/httprate"
@@ -41,9 +44,12 @@ func NewServeCmd() *cobra.Command {
 			defer cancel()
 
 			router := chi.NewRouter()
+
+			m := chiprometheus.NewMiddleware("TestServer")
 			router.Use(middleware.RequestID) //registration of middlewares REALY NEED TODO
 			router.Use(middleware.Recoverer)
 			router.Use(middleware.Logger) // switcth off to production transfer to proxy server
+			router.Use(m)
 
 			configPath, _ := cmd.Flags().GetString("config")
 			cfg, err := config.Parse(configPath)
@@ -82,6 +88,8 @@ func NewServeCmd() *cobra.Command {
 				passwordHasher,
 				jwtManager,
 				buildinfo.New())
+
+			router.Handle("/metrics", promhttp.Handler())
 
 			httpServer := http.Server{
 				Addr:         cfg.HTTPServer.Address,

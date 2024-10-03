@@ -16,3 +16,6 @@ POST http://localhost:4000/register
 }
 ###
 GET http://localhost:4000/buildinfo
+
+###
+GET http://localhost:4000/metrics
