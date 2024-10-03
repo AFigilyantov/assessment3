@@ -1,0 +1,21 @@
+
+GET http://localhost:4000/login
+
+{
+"username":"u",
+"email":"no@yahooo.com",
+"password":"q344566"
+}
+###
+POST http://localhost:4000/register
+
+{
+"username":"u",
+"email":"no@yahooo.com",
+"password":"q344566"
+}
+###
+GET http://localhost:4000/buildinfo
+
+###
+GET http://localhost:4000/metrics
