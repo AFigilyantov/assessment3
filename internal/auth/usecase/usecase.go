@@ -6,6 +6,7 @@ import (
 	"chitests/internal/models"
 	"context"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -50,8 +51,15 @@ func NewUseCase(
 
 func (u AuthUseCase) GetLogin(ctx context.Context, request gen.GetLoginRequestObject) (gen.GetLoginResponseObject, error) {
 	user, err := u.userrepository.FindUserByEmail(ctx, request.Body.Username)
+
 	if err != nil {
 		return gen.GetLogin500JSONResponse{
+			Error: err.Error(),
+		}, nil
+	}
+
+	if err := validator.New().Struct(user); err != nil {
+		return gen.GetLogin400JSONResponse{
 			Error: err.Error(),
 		}, nil
 	}
@@ -76,10 +84,15 @@ func (u AuthUseCase) PostRegister(ctx context.Context, request gen.PostRegisterR
 		return gen.PostRegister500JSONResponse{}, nil
 	}
 
-	// TODO with New method
 	user := models.UserAccount{
 		UserName: request.Body.Username,
 		Password: string(hashedPassword),
+	}
+
+	if err := validator.New().Struct(user); err != nil {
+		return gen.PostRegister400JSONResponse{
+			Error: err.Error(),
+		}, nil
 	}
 
 	err = u.userrepository.RegisterUser(ctx, user)
