@@ -2,15 +2,9 @@ package commands
 
 import (
 	"chitests/config"
-	"chitests/internal/auth/usecase"
-	"chitests/internal/buildinfo"
-	"chitests/internal/http/gen"
+	"chitests/internal/handlers"
 	"chitests/internal/storage"
-	"chitests/pkg/crypto"
-	"chitests/pkg/jwt"
-	"chitests/pkg/trace"
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -19,61 +13,42 @@ import (
 	"syscall"
 	"time"
 
-	chiprometheus "github.com/766b/chi-prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-
+	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/httprate"
+
+	// "github.com/go-chi/render"
 	"github.com/spf13/cobra"
 )
 
 func NewServeCmd() *cobra.Command {
-	var configPath string
-
 	c := &cobra.Command{
 		Use:        "serve",
 		Aliases:    []string{"s"},
 		SuggestFor: []string{},
 		Short:      "Start API server",
-		Args:       cobra.NoArgs,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
+			//TODO start logger like slog
+
 			log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 			slog.SetDefault(log)
 
 			ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()
 
-			// Set up OpenTelemetry.
-			otelShutdown, err := trace.SetupOTelSDK(ctx)
-			if err != nil {
-				return err
-			}
-			// Handle shutdown properly so nothing leaks.
-			defer func() {
-				err = errors.Join(err, otelShutdown(context.Background()))
-			}()
-
 			router := chi.NewRouter()
-
-			m := chiprometheus.NewMiddleware("TestServer")
 			router.Use(middleware.RequestID) //registration of middlewares REALY NEED TODO
 			router.Use(middleware.Recoverer)
 			router.Use(middleware.Logger) // switcth off to production transfer to proxy server
-			router.Use(m)
 
-			configPath, _ := cmd.Flags().GetString("config")
-			cfg, err := config.Parse(configPath)
-
-			// to flags "C:/Users/afigi/Desktop/Education/for_Chi/config.yaml"
+			cfg, err := config.Parse("C:/Users/afigi/Desktop/Education/for_Chi/config.yaml")
 			slog.Info("config", slog.Any("cfg", cfg))
 			if err != nil {
 				return err
 			}
 
-			s, err := storage.New(cfg.Storage.SQLitePath)
+			s, err := storage.New("./storage.db")
 
 			if err != nil {
 				return err
@@ -85,35 +60,16 @@ func NewServeCmd() *cobra.Command {
 				httprate.WithKeyFuncs(httprate.KeyByIP, httprate.KeyByEndpoint),
 			))
 
-			passwordHasher := crypto.NewPasswordHasher()
+			router.Post("/register", handlers.RegisterHandler(&s))
 
-			jwtManager, err := jwt.NewJWTManager(
-				cfg.JWT.Issuer,
-				cfg.JWT.ExpiresIn,
-				[]byte(cfg.JWT.PublicKey),
-				[]byte(cfg.JWT.PrivateKey))
-
-			if err != nil {
-				return err
-			}
-
-			useCase := usecase.NewUseCase(&s,
-				passwordHasher,
-				jwtManager,
-				buildinfo.New())
-
-			router.Handle("/metrics", promhttp.Handler())
-
-			handler := otelhttp.NewHandler(gen.HandlerFromMux(gen.NewStrictHandler(useCase, nil), router), "/")
+			router.Get("/login", handlers.LoginHandler(&s))
 
 			httpServer := http.Server{
 				Addr:         cfg.HTTPServer.Address,
 				ReadTimeout:  cfg.HTTPServer.ReadTimeout,
 				WriteTimeout: cfg.HTTPServer.WriteTimeout,
-				Handler:      handler,
+				Handler:      router,
 			}
-
-			//gen.HandlerFromMux(gen.NewStrictHandler(useCase, nil), router)
 
 			go func() {
 				if err := httpServer.ListenAndServe(); err != nil {
@@ -139,6 +95,5 @@ func NewServeCmd() *cobra.Command {
 			return nil
 		},
 	}
-	c.Flags().StringVar(&configPath, "config", "C:/Users/afigi/Desktop/Education/for_Chi/config.yaml", "path to config")
 	return c
 }
