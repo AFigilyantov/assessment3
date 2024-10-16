@@ -60,6 +60,7 @@ func NewServeCmd() *cobra.Command {
 
 			m := chiprometheus.NewMiddleware("TestServer")
 			router.Use(middleware.RequestID) //registration of middlewares REALY NEED TODO
+			router.Use(middleware.CleanPath)
 			router.Use(middleware.Recoverer)
 			router.Use(middleware.Logger) // switcth off to production transfer to proxy server
 			router.Use(m)

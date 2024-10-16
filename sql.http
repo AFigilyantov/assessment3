@@ -19,3 +19,8 @@ GET http://localhost:4000/buildinfo
 
 ###
 GET http://localhost:4000/metrics
+
+###
+GET http://localhost:4000/ping
+
+
