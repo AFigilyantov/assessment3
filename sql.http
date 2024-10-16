@@ -10,7 +10,7 @@ GET http://localhost:4000/login
 POST http://localhost:4000/register
 
 {
-"username":"usdsaadhadhadrqe5eqwhtertryrywyjwyjwy2",
+"username":"55",
 "email":"csv@mai.ru",
 "password":"q344566"
 }

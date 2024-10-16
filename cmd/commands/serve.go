@@ -63,7 +63,7 @@ func NewServeCmd() *cobra.Command {
 			router.Use(middleware.Recoverer)
 			router.Use(middleware.Logger) // switcth off to production transfer to proxy server
 			router.Use(m)
-
+			router.Use(middleware.Heartbeat("/ping")) // healthcheck end point for load balancer
 			configPath, _ := cmd.Flags().GetString("config")
 			cfg, err := config.Parse(configPath)
 
